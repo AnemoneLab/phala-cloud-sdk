@@ -63,7 +63,13 @@ const deployResult = await phalaCloud.deploy({
   mode: 'docker-compose',
   name: 'my-application',
   compose: './docker-compose.yml',  // 指向您的docker-compose.yml文件
-  env: ['KEY1=value1', 'KEY2=value2']  // 可选的环境变量
+  env: ['KEY1=value1', 'KEY2=value2'],  // 可选的环境变量
+  // 可选配置参数
+  // vcpu: 1,               // 默认值: 1
+  // memory: 2048,          // 默认值: 2048 MB
+  // diskSize: 40,          // 默认值: 40 GB
+  // image: 'dstack-dev-0.3.5', // 默认值: dstack-dev-0.3.5
+  // teepodId: 3            // 默认值: 3，也可以自动寻找可用teepod
 });
 
 console.log('部署成功!');
@@ -91,7 +97,7 @@ const deployResult = await phalaCloud.deploy({
 ```typescript
 // 升级现有部署
 const upgradeResult = await phalaCloud.upgrade({
-  name: 'my-application',  // 现有部署的名称
+  name: 'my-application',  // 现有部署的名称，即应用ID
   compose: './docker-compose.yml',  // 新的配置文件
   env: ['KEY1=new-value', 'DEBUG=true']  // 更新的环境变量
 });
@@ -158,7 +164,12 @@ const deployResponse = await phalaCloud.deploy({
   mode: 'docker-compose',
   name: 'my-app',
   compose: './docker-compose.yml',
-  env: ['KEY1=value1', 'KEY2=value2']
+  env: ['KEY1=value1', 'KEY2=value2'],
+  vcpu: 1,
+  memory: 2048,
+  diskSize: 40,
+  image: 'dstack-dev-0.3.5',
+  teepodId: 3
 });
 
 // 升级现有的TEE实例
@@ -166,6 +177,32 @@ const upgradeResponse = await phalaCloud.upgrade({
   name: 'my-app',
   compose: './docker-compose.yml',
   env: ['KEY1=value1', 'KEY2=value2']
+});
+```
+
+### 监控部署状态
+
+```typescript
+// 监控部署状态
+await phalaCloud.monitorDeploymentStatus('app-id-here', {
+  interval: 5000,        // 检查间隔时间(毫秒)，默认5000
+  maxRetries: 36,        // 最大尝试次数，默认36 (约3分钟)
+  queryTimeout: 8000,    // 状态查询超时时间(毫秒)，默认8000
+  onStatusChange: (status, cvm) => {
+    console.log(`状态变化: ${status}`);
+  },
+  onSuccess: (cvm) => {
+    console.log('部署成功!');
+  },
+  onFailure: (status, cvm) => {
+    console.log(`部署失败: ${status}`);
+  },
+  onTimeout: (cvm) => {
+    console.log('部署超时');
+  },
+  onError: (error) => {
+    console.error('监控部署状态时发生错误:', error);
+  }
 });
 ```
 

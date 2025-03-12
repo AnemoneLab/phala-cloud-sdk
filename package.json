@@ -24,7 +24,7 @@
     "sdk",
     "blockchain"
   ],
-  "author": "",
+  "author": "ChainRex",
   "license": "MIT",
   "dependencies": {
     "@noble/curves": "^1.8.1",
