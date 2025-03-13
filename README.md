@@ -7,25 +7,25 @@
 使用 npm:
 
 ```bash
-npm install phala-cloud-sdk
+npm install @anemonelab/phala-cloud-sdk
 ```
 
 使用 yarn:
 
 ```bash
-yarn add phala-cloud-sdk
+yarn add @anemonelab/phala-cloud-sdk
 ```
 
 使用 pnpm:
 
 ```bash
-pnpm add phala-cloud-sdk
+pnpm add @anemonelab/phala-cloud-sdk
 ```
 
 ## 基本用法
 
 ```typescript
-import { PhalaCloud } from 'phala-cloud-sdk';
+import { PhalaCloud } from '@anemonelab/phala-cloud-sdk';
 
 // 创建SDK实例
 const phalaCloud = new PhalaCloud({
@@ -49,7 +49,7 @@ console.log(`Found ${cvms.length} CVM instances`);
 以下示例展示如何将Docker Hub上的镜像部署到Phala Cloud TEE环境：
 
 ```typescript
-import { PhalaCloud } from 'phala-cloud-sdk';
+import { PhalaCloud } from '@anemonelab/phala-cloud-sdk';
 import path from 'path';
 
 // 创建SDK实例
