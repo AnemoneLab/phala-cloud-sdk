@@ -3,6 +3,7 @@ import {
   CreateCvmResponse,
   DeployOptions,
   Env,
+  GetCvmAttestationResponse,
   GetCvmByAppIdResponse,
   GetCvmsByUserIdResponse,
   GetPubkeyFromCvmResponse,
@@ -495,6 +496,30 @@ export class PhalaCloud {
       return this.apiClient.get<any>(`/api/v1/cvms/app_${appId}/network`);
     } catch (error: any) {
       logger.error(`获取应用 ${appId} 网络信息失败: ${error.message}`);
+      throw error;
+    }
+  }
+
+  /**
+   * 获取CVM的证明信息
+   * @param identifier - CVM标识符，可以是app_id或CVM的ID
+   * @returns CVM的证明信息，包括证书链、TCB信息和compose文件
+   */
+  async getCvmAttestation(identifier: string): Promise<GetCvmAttestationResponse> {
+    logger.debug(`获取CVM的证明信息: ${identifier}`);
+    
+    try {
+      // 如果标识符不是以app_开头，则添加app_前缀
+      const id = identifier.startsWith('app_') ? identifier : `app_${identifier}`;
+      return await this.apiClient.get<GetCvmAttestationResponse>(`/api/v1/cvms/${id}/attestation`);
+    } catch (error: any) {
+      // 记录错误信息
+      if (error.response) {
+        logger.error(`获取CVM证明信息失败: 状态码 ${error.response.status}`);
+        logger.debug(`错误详情: ${JSON.stringify(error.response.data)}`);
+      } else {
+        logger.error(`获取CVM证明信息失败: ${error.message}`);
+      }
       throw error;
     }
   }

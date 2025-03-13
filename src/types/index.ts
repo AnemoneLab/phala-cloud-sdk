@@ -203,4 +203,169 @@ export const upgradeCvmResponseSchema = z.object({
   detail: z.string()
 });
 
-export type UpgradeCvmResponse = z.infer<typeof upgradeCvmResponseSchema>; 
+export type UpgradeCvmResponse = z.infer<typeof upgradeCvmResponseSchema>;
+
+/**
+ * CVM证明响应接口
+ */
+export interface GetCvmAttestationResponse {
+  /**
+   * CVM是否在线
+   */
+  is_online: boolean;
+  
+  /**
+   * CVM是否公开
+   */
+  is_public: boolean;
+  
+  /**
+   * 错误信息，如果有的话
+   */
+  error: string | null;
+  
+  /**
+   * 应用证书列表
+   */
+  app_certificates: Array<{
+    /**
+     * 证书主题
+     */
+    subject: {
+      common_name: string;
+      organization: string | null;
+      country: string | null;
+      state: string | null;
+      locality: string | null;
+    };
+    
+    /**
+     * 证书发行者
+     */
+    issuer: {
+      common_name: string;
+      organization: string;
+      country: string | null;
+    };
+    
+    /**
+     * 证书序列号
+     */
+    serial_number: string;
+    
+    /**
+     * 证书有效期开始时间
+     */
+    not_before: string;
+    
+    /**
+     * 证书有效期结束时间
+     */
+    not_after: string;
+    
+    /**
+     * 证书版本
+     */
+    version: string;
+    
+    /**
+     * 证书指纹
+     */
+    fingerprint: string;
+    
+    /**
+     * 签名算法
+     */
+    signature_algorithm: string;
+    
+    /**
+     * 主题备用名称
+     */
+    sans: any | null;
+    
+    /**
+     * 是否为CA证书
+     */
+    is_ca: boolean;
+    
+    /**
+     * 在证书链中的位置
+     */
+    position_in_chain: number;
+    
+    /**
+     * 引用值(quote)，用于远程认证
+     */
+    quote: string | null;
+  }>;
+  
+  /**
+   * TCB (Trusted Computing Base) 信息
+   */
+  tcb_info: {
+    /**
+     * Measured Root of Trust for Data
+     */
+    mrtd: string;
+    
+    /**
+     * 根文件系统哈希
+     */
+    rootfs_hash: string;
+    
+    /**
+     * Runtime Measurement Register 0
+     */
+    rtmr0: string;
+    
+    /**
+     * Runtime Measurement Register 1
+     */
+    rtmr1: string;
+    
+    /**
+     * Runtime Measurement Register 2
+     */
+    rtmr2: string;
+    
+    /**
+     * Runtime Measurement Register 3
+     */
+    rtmr3: string;
+    
+    /**
+     * 事件日志
+     */
+    event_log: Array<{
+      /**
+       * 测量寄存器索引
+       */
+      imr: number;
+      
+      /**
+       * 事件类型
+       */
+      event_type: number;
+      
+      /**
+       * 摘要值
+       */
+      digest: string;
+      
+      /**
+       * 事件名称
+       */
+      event: string;
+      
+      /**
+       * 事件负载数据
+       */
+      event_payload: string;
+    }>;
+  };
+  
+  /**
+   * Docker Compose文件内容
+   */
+  compose_file: string;
+} 
