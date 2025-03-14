@@ -50,7 +50,6 @@ async function main() {
   try {
     // 初始化Phala Cloud SDK
     const phalaCloud = new PhalaCloud({
-      apiUrl: "https://phat.phala.network",
       apiKey: API_KEY
     });
 
