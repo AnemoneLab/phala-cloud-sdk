@@ -5,10 +5,16 @@ import {
   Env,
   GetCvmAttestationResponse,
   GetCvmByAppIdResponse,
+  GetCvmCompositionResponse,
   GetCvmsByUserIdResponse,
+  GetCvmStatsResponse,
   GetPubkeyFromCvmResponse,
   GetUserInfoResponse,
   PhalaCloudConfig,
+  StartCvmResponse,
+  StopCvmResponse,
+  UpdateComposeOptions,
+  UpdateComposeResponse,
   UpgradeCvmResponse,
   UpgradeOptions,
 } from '../types';
@@ -566,5 +572,220 @@ export class PhalaCloud {
     const queryString = params.length > 0 ? `?${params.join('&')}` : '';
     
     return `${baseUrl}${urlPath}${queryString}`;
+  }
+
+  /**
+   * 更新Compose配置
+   * @param options - 更新Compose配置选项
+   * @returns 更新响应
+   */
+  async updateCompose(options: UpdateComposeOptions): Promise<UpdateComposeResponse> {
+    // 验证必要的选项
+    if (!options.identifier) {
+      throw new Error("应用标识符(identifier)是必需的");
+    }
+    if (!options.compose) {
+      throw new Error("Compose文件路径(compose)是必需的");
+    }
+
+    // 处理环境变量
+    options.envs = this.parseEnv(options.env || [], options.envFile || "");
+
+    // 读取compose文件内容
+    const composeContent = await fs.readFile(options.compose, 'utf-8');
+    
+    logger.debug(`更新 ${options.identifier} 的Compose配置，使用文件 ${options.compose}`);
+    
+    // 标准化标识符格式
+    const identifier = options.identifier.startsWith('app_') 
+      ? options.identifier 
+      : `app_${options.identifier}`;
+    
+    // 获取CVM信息以获取加密公钥
+    logger.debug(`获取 ${options.identifier} 的CVM详情`);
+    const cvm = await this.getCvmByAppId(options.identifier.replace('app_', ''));
+    
+    // 构造compose_manifest对象
+    const compose_manifest = {
+      docker_compose_file: composeContent,
+      docker_config: options.dockerConfig || {
+        password: "",
+        username: "",
+        registry: ""
+      },
+      features: options.features || ["kms", "tproxy-net"],
+      kms_enabled: options.kmsEnabled !== undefined ? options.kmsEnabled : true,
+      manifest_version: 1,
+      name: identifier,
+      pre_launch_script: options.preLaunchScript || "",
+      bash_script: options.bashScript || "",
+      public_logs: options.publicLogs !== undefined ? options.publicLogs : true,
+      public_sysinfo: options.publicSysinfo !== undefined ? options.publicSysinfo : true,
+      tproxy_enabled: options.tproxyEnabled !== undefined ? options.tproxyEnabled : true,
+      runner: "docker-compose",
+      version: "1.0.0"
+    };
+    
+    // 加密环境变量
+    let encrypted_env = '';
+    if (options.envs && options.envs.length > 0 && cvm.encrypted_env_pubkey) {
+      logger.debug(`为更新加密 ${options.envs.length} 个环境变量`);
+      encrypted_env = await encryptSecrets(options.envs, cvm.encrypted_env_pubkey);
+      logger.debug('环境变量加密成功');
+    }
+    
+    // 构造请求体
+    const payload = {
+      id: cvm.id,
+      compose_manifest,
+      encrypted_env,
+      allow_restart: options.allowRestart !== undefined ? (options.allowRestart ? 1 : 0) : 1
+    };
+
+    // 发送PUT请求更新Compose配置
+    logger.debug('发送更新Compose配置请求');
+    return this.apiClient.put<UpdateComposeResponse>(`/api/v1/cvms/${identifier}/compose`, payload);
+  }
+
+  /**
+   * 获取CVM的系统状态信息
+   * @param identifier - CVM标识符，可以是app_id或CVM的ID
+   * @param timeout - 超时时间(毫秒)，默认8秒
+   * @returns CVM的系统状态信息，包括CPU、内存、磁盘等
+   */
+  async getCvmStats(identifier: string, timeout?: number): Promise<GetCvmStatsResponse> {
+    logger.debug(`获取CVM的系统状态信息: ${identifier}`);
+    
+    // 使用自定义超时设置
+    const config = timeout ? { timeout } : undefined;
+    
+    try {
+      // 如果标识符不是以app_开头，则添加app_前缀
+      const id = identifier.startsWith('app_') ? identifier : `app_${identifier}`;
+      return await this.apiClient.get<GetCvmStatsResponse>(`/api/v1/cvms/${id}/stats`, config);
+    } catch (error: any) {
+      // 记录错误信息
+      if (error.response) {
+        logger.error(`获取CVM系统状态信息失败: 状态码 ${error.response.status}`);
+        logger.debug(`错误详情: ${JSON.stringify(error.response.data)}`);
+      } else if (error.code === 'ECONNABORTED') {
+        logger.error(`请求超时: 获取CVM ${identifier} 系统状态信息时超时`);
+      } else {
+        logger.error(`获取CVM系统状态信息失败: ${error.message}`);
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * 获取CVM的组合信息
+   * @param identifier - CVM标识符，可以是app_id或CVM的ID
+   * @param timeout - 超时时间(毫秒)，默认8秒
+   * @returns CVM的组合信息，包括Docker Compose配置和容器状态
+   */
+  async getCvmComposition(identifier: string, timeout?: number): Promise<GetCvmCompositionResponse> {
+    logger.debug(`获取CVM的组合信息: ${identifier}`);
+    
+    // 使用自定义超时设置
+    const config = timeout ? { timeout } : undefined;
+    
+    try {
+      // 如果标识符不是以app_开头，则添加app_前缀
+      const id = identifier.startsWith('app_') ? identifier : `app_${identifier}`;
+      return await this.apiClient.get<GetCvmCompositionResponse>(`/api/v1/cvms/${id}/composition`, config);
+    } catch (error: any) {
+      // 记录错误信息
+      if (error.response) {
+        logger.error(`获取CVM组合信息失败: 状态码 ${error.response.status}`);
+        logger.debug(`错误详情: ${JSON.stringify(error.response.data)}`);
+      } else if (error.code === 'ECONNABORTED') {
+        logger.error(`请求超时: 获取CVM ${identifier} 组合信息时超时`);
+      } else {
+        logger.error(`获取CVM组合信息失败: ${error.message}`);
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * 启动CVM
+   * @param identifier - CVM标识符，可以是app_id或CVM的ID
+   * @param timeout - 超时时间(毫秒)，默认8秒
+   * @returns 启动操作响应，包含CVM的详细信息
+   */
+  async startCvm(identifier: string, timeout?: number): Promise<StartCvmResponse> {
+    logger.debug(`启动CVM: ${identifier}`);
+    
+    // 使用自定义超时设置
+    const config = timeout ? { timeout } : undefined;
+    
+    try {
+      // 如果标识符不是以app_开头，则添加app_前缀
+      const id = identifier.startsWith('app_') ? identifier : `app_${identifier}`;
+      return await this.apiClient.post<StartCvmResponse>(`/api/v1/cvms/${id}/start`, {}, config);
+    } catch (error: any) {
+      // 记录错误信息
+      if (error.response) {
+        logger.error(`启动CVM失败: 状态码 ${error.response.status}`);
+        logger.debug(`错误详情: ${JSON.stringify(error.response.data)}`);
+        
+        // 如果是特定的错误状态码，提供更具体的错误信息
+        if (error.response.status === 400) {
+          logger.error('请求格式错误，请检查参数');
+        } else if (error.response.status === 404) {
+          logger.error(`未找到CVM: ${identifier}`);
+        } else if (error.response.status === 409) {
+          logger.error('冲突：CVM可能已在运行或处于其他不允许启动的状态');
+        } else if (error.response.status === 500) {
+          logger.error('服务器错误，请稍后重试');
+        }
+      } else if (error.code === 'ECONNABORTED') {
+        logger.error(`请求超时: 启动CVM ${identifier} 时超时`);
+      } else {
+        logger.error(`启动CVM失败: ${error.message}`);
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * 停止CVM
+   * @param identifier - CVM标识符，可以是app_id或CVM的ID
+   * @param timeout - 超时时间(毫秒)，默认8秒
+   * @returns 停止操作响应，包含CVM的详细信息
+   */
+  async stopCvm(identifier: string, timeout?: number): Promise<StopCvmResponse> {
+    logger.debug(`停止CVM: ${identifier}`);
+    
+    // 使用自定义超时设置
+    const config = timeout ? { timeout } : undefined;
+    
+    try {
+      // 如果标识符不是以app_开头，则添加app_前缀
+      const id = identifier.startsWith('app_') ? identifier : `app_${identifier}`;
+      return await this.apiClient.post<StopCvmResponse>(`/api/v1/cvms/${id}/stop`, {}, config);
+    } catch (error: any) {
+      // 记录错误信息
+      if (error.response) {
+        logger.error(`停止CVM失败: 状态码 ${error.response.status}`);
+        logger.debug(`错误详情: ${JSON.stringify(error.response.data)}`);
+        
+        // 如果是特定的错误状态码，提供更具体的错误信息
+        if (error.response.status === 400) {
+          logger.error('请求格式错误，请检查参数');
+        } else if (error.response.status === 404) {
+          logger.error(`未找到CVM: ${identifier}`);
+        } else if (error.response.status === 409) {
+          logger.error('冲突：CVM可能已在运行或处于其他不允许停止的状态');
+        } else if (error.response.status === 500) {
+          logger.error('服务器错误，请稍后重试');
+        }
+      } else if (error.code === 'ECONNABORTED') {
+        logger.error(`请求超时: 停止CVM ${identifier} 时超时`);
+      } else {
+        logger.error(`停止CVM失败: ${error.message}`);
+      }
+      throw error;
+    }
   }
 } 

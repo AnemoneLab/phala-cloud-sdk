@@ -86,6 +86,87 @@ export interface UpgradeOptions {
 }
 
 /**
+ * 更新Compose配置的选项
+ */
+export interface UpdateComposeOptions {
+  /**
+   * 应用ID或CVM标识符
+   */
+  identifier: string;
+  /**
+   * Compose文件路径
+   */
+  compose: string;
+  /**
+   * 环境变量数组
+   */
+  env?: string[];
+  /**
+   * 环境变量文件路径
+   */
+  envFile?: string;
+  /**
+   * 环境变量对象数组
+   */
+  envs?: Env[];
+  /**
+   * 是否允许重启
+   * @default true
+   */
+  allowRestart?: boolean;
+  /**
+   * Docker配置
+   */
+  dockerConfig?: {
+    username: string;
+    password: string;
+    registry?: string;
+  };
+  /**
+   * 预启动脚本
+   */
+  preLaunchScript?: string;
+  /**
+   * 启动脚本
+   */
+  bashScript?: string;
+  /**
+   * 附加功能列表
+   */
+  features?: string[];
+  /**
+   * 是否启用KMS
+   * @default true
+   */
+  kmsEnabled?: boolean;
+  /**
+   * 是否启用TProxy
+   * @default true
+   */
+  tproxyEnabled?: boolean;
+  /**
+   * 是否公开日志
+   * @default true
+   */
+  publicLogs?: boolean;
+  /**
+   * 是否公开系统信息
+   * @default true
+   */
+  publicSysinfo?: boolean;
+  /**
+   * 调试模式
+   */
+  debug?: boolean;
+}
+
+/**
+ * 更新Compose配置响应
+ */
+export const updateComposeResponseSchema = z.string();
+export type UpdateComposeResponse = z.infer<typeof updateComposeResponseSchema>;
+
+/**
  * CVM 实例信息
  */
 export const hostedSchema = z.object({
@@ -368,4 +449,355 @@ export interface GetCvmAttestationResponse {
    * Docker Compose文件内容
    */
   compose_file: string;
-} 
+}
+
+/**
+ * CVM系统状态信息接口
+ */
+export interface GetCvmStatsResponse {
+  /**
+   * CVM是否在线
+   */
+  is_online: boolean;
+  
+  /**
+   * CVM是否公开
+   */
+  is_public: boolean;
+  
+  /**
+   * 错误信息，如果有的话
+   */
+  error: string | null;
+  
+  /**
+   * 系统信息
+   */
+  sysinfo: {
+    /**
+     * 操作系统名称
+     */
+    os_name: string;
+    
+    /**
+     * 操作系统版本
+     */
+    os_version: string;
+    
+    /**
+     * 内核版本
+     */
+    kernel_version: string;
+    
+    /**
+     * CPU型号
+     */
+    cpu_model: string;
+    
+    /**
+     * CPU数量
+     */
+    num_cpus: number;
+    
+    /**
+     * 总内存(字节)
+     */
+    total_memory: number;
+    
+    /**
+     * 可用内存(字节)
+     */
+    available_memory: number;
+    
+    /**
+     * 已使用内存(字节)
+     */
+    used_memory: number;
+    
+    /**
+     * 空闲内存(字节)
+     */
+    free_memory: number;
+    
+    /**
+     * 总交换空间(字节)
+     */
+    total_swap: number;
+    
+    /**
+     * 已使用交换空间(字节)
+     */
+    used_swap: number;
+    
+    /**
+     * 空闲交换空间(字节)
+     */
+    free_swap: number;
+    
+    /**
+     * 系统运行时间(秒)
+     */
+    uptime: number;
+    
+    /**
+     * 1分钟平均负载
+     */
+    loadavg_one: number;
+    
+    /**
+     * 5分钟平均负载
+     */
+    loadavg_five: number;
+    
+    /**
+     * 15分钟平均负载
+     */
+    loadavg_fifteen: number;
+    
+    /**
+     * 磁盘信息列表
+     */
+    disks: Array<{
+      /**
+       * 磁盘名称
+       */
+      name: string;
+      
+      /**
+       * 挂载点
+       */
+      mount_point: string;
+      
+      /**
+       * 总大小(字节)
+       */
+      total_size: number;
+      
+      /**
+       * 空闲大小(字节)
+       */
+      free_size: number;
+    }>;
+  };
+}
+
+/**
+ * CVM组合信息接口
+ */
+export interface GetCvmCompositionResponse {
+  /**
+   * CVM是否在线
+   */
+  is_online: boolean;
+  
+  /**
+   * CVM是否公开
+   */
+  is_public: boolean;
+  
+  /**
+   * 错误信息，如果有的话
+   */
+  error: string | null;
+  
+  /**
+   * Docker Compose文件内容
+   */
+  docker_compose_file: string;
+  
+  /**
+   * 清单版本
+   */
+  manifest_version: number;
+  
+  /**
+   * 版本信息
+   */
+  version: string;
+  
+  /**
+   * 运行器类型
+   */
+  runner: string;
+  
+  /**
+   * 功能列表
+   */
+  features: string[] | null;
+  
+  /**
+   * 容器列表
+   */
+  containers: Array<{
+    /**
+     * 容器ID
+     */
+    id: string;
+    
+    /**
+     * 容器名称列表
+     */
+    names: string[];
+    
+    /**
+     * 容器镜像
+     */
+    image: string;
+    
+    /**
+     * 镜像ID
+     */
+    image_id: string;
+    
+    /**
+     * 启动命令
+     */
+    command: string;
+    
+    /**
+     * 创建时间戳
+     */
+    created: number;
+    
+    /**
+     * 容器状态
+     */
+    state: string;
+    
+    /**
+     * 容器状态详情
+     */
+    status: string;
+    
+    /**
+     * 日志端点URL
+     */
+    log_endpoint: string;
+  }>;
+}
+
+/**
+ * 启动CVM响应接口
+ */
+export interface StartCvmResponse {
+  /**
+   * CVM ID
+   */
+  id: number;
+  
+  /**
+   * CVM名称
+   */
+  name: string;
+  
+  /**
+   * CVM状态
+   */
+  status: string;
+  
+  /**
+   * Teepod ID
+   */
+  teepod_id: number;
+  
+  /**
+   * Teepod信息
+   */
+  teepod: {
+    /**
+     * Teepod ID
+     */
+    id: number;
+    
+    /**
+     * Teepod名称
+     */
+    name: string;
+  };
+  
+  /**
+   * 用户ID
+   */
+  user_id: number;
+  
+  /**
+   * 应用ID
+   */
+  app_id: string;
+  
+  /**
+   * 虚拟机UUID
+   */
+  vm_uuid: string;
+  
+  /**
+   * 实例ID
+   */
+  instance_id: string;
+  
+  /**
+   * 应用URL
+   */
+  app_url: string;
+  
+  /**
+   * 基础镜像
+   */
+  base_image: string;
+  
+  /**
+   * 虚拟CPU数量
+   */
+  vcpu: number;
+  
+  /**
+   * 内存大小(MB)
+   */
+  memory: number;
+  
+  /**
+   * 磁盘大小(GB)
+   */
+  disk_size: number;
+  
+  /**
+   * 清单版本
+   */
+  manifest_version: number;
+  
+  /**
+   * 版本信息
+   */
+  version: string;
+  
+  /**
+   * 运行器类型
+   */
+  runner: string;
+  
+  /**
+   * Docker Compose文件内容
+   */
+  docker_compose_file: string;
+  
+  /**
+   * 功能列表
+   */
+  features: string[] | null;
+  
+  /**
+   * 创建时间
+   */
+  created_at: string;
+  
+  /**
+   * 环境变量加密公钥
+   */
+  encrypted_env_pubkey: string;
+}
+
+/**
+ * 停止CVM响应接口
+ * 与启动CVM响应结构相同
+ */
+export type StopCvmResponse = StartCvmResponse; 
