@@ -636,7 +636,7 @@ export class PhalaCloud {
     
     // 构造请求体
     const payload = {
-      id: cvm.id,
+      id: identifier,
       compose_manifest,
       encrypted_env,
       allow_restart: options.allowRestart !== undefined ? (options.allowRestart ? 1 : 0) : 1

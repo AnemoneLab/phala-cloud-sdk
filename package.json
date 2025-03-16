@@ -1,6 +1,6 @@
 {
   "name": "@anemonelab/phala-cloud-sdk",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "SDK for interacting with Phala Cloud services",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
